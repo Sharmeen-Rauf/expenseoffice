@@ -126,7 +126,9 @@ export function PaidByAnalytics({ transactions }: PaidByAnalyticsProps) {
                       <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                         {payer.displayName}
                         {isTopContributor && (
-                          <Award className="h-3.5 w-3.5 text-amber-500" title="Top Spender" />
+                          <span title="Top Spender">
+                            <Award className="h-3.5 w-3.5 text-amber-500" />
+                          </span>
                         )}
                       </h4>
                       <p className="text-[11px] text-slate-500">
