@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth';
 import { Sidebar } from '@/components/sidebar';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, loading, role, signOut } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -34,7 +35,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (role === 'pending') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-md bg-white p-8 border border-slate-200 rounded-lg shadow-sm text-center">
+        <div className="w-full max-w-md bg-white p-6 sm:p-8 border border-slate-200 rounded-lg shadow-sm text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 mb-4 border border-amber-200">
             <ShieldAlert className="h-6 w-6" />
           </div>
@@ -58,17 +59,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Sidebar */}
-      <Sidebar />
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Sidebar Navigation */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-      {/* Main Layout Area */}
-      <div className="pl-64 flex flex-col min-h-screen">
+      {/* Main Layout Content Area */}
+      <div className="flex-1 flex flex-col md:pl-64 transition-all duration-300">
         {/* Top Header */}
-        <Header />
+        <Header onMenuToggle={() => setSidebarOpen((prev) => !prev)} />
 
-        {/* Page Content */}
-        <main className="flex-1 p-8 overflow-y-auto">
+        {/* Page Content Container */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           {children}
         </main>
       </div>

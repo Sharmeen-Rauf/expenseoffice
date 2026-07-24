@@ -140,7 +140,7 @@ export function TransactionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px] bg-white border border-slate-200 shadow-lg rounded-lg">
+      <DialogContent className="w-[92vw] max-w-[95vw] sm:max-w-[520px] bg-white border border-slate-200 shadow-xl rounded-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader className="border-b border-slate-100 pb-3">
           <DialogTitle className="text-lg font-bold text-slate-900">
             {isEditing ? 'Edit Transaction' : 'Record New Transaction'}

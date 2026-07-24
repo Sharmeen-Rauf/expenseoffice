@@ -87,7 +87,7 @@ export function AuditLogModal({ isOpen, onClose }: AuditLogModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[650px] bg-white border border-slate-200 shadow-xl rounded-lg max-h-[85vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="w-[94vw] max-w-[95vw] sm:max-w-[650px] bg-white border border-slate-200 shadow-xl rounded-lg max-h-[88vh] flex flex-col p-0 overflow-hidden">
         {/* Header */}
         <DialogHeader className="p-5 border-b border-slate-100 flex flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-2.5">
