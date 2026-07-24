@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
+import { PaidByAnalytics } from '@/components/paid-by-analytics';
+import { AuditLogModal } from '@/components/audit-log-modal';
 import { toast } from 'sonner';
 import { 
   TrendingUp, 
@@ -12,7 +14,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   FileText,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,6 +41,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
 
   // Filter lists
   const months = [
@@ -159,6 +163,16 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAuditModalOpen(true)}
+            className="flex items-center gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
+          >
+            <ShieldCheck className="h-4 w-4 text-slate-600" />
+            Audit Trail
+          </Button>
+
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 border border-slate-200 rounded-md shadow-xs">
             <Filter className="h-4 w-4 text-slate-400" />
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filters</span>
@@ -335,6 +349,17 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Paid By Analytics Breakdown Widget */}
+      <PaidByAnalytics transactions={filteredTransactions} />
+
+      {/* Audit Log Modal */}
+      {auditModalOpen && (
+        <AuditLogModal
+          isOpen={auditModalOpen}
+          onClose={() => setAuditModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

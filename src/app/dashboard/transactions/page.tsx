@@ -3,10 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
+import { createAuditLog } from '@/lib/audit';
 import { TransactionsTable } from '@/components/transactions-table';
 import { TransactionModal } from '@/components/transaction-modal';
+import { AuditLogModal } from '@/components/audit-log-modal';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Transaction {
   id: string;
@@ -26,6 +29,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
   const [activeTransaction, setActiveTransaction] = useState<Transaction | null>(null);
 
   const loadTransactions = async () => {
@@ -60,6 +64,7 @@ export default function TransactionsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    const targetTx = transactions.find((t) => t.id === id);
     try {
       const { error } = await supabase
         .from('transactions')
@@ -67,6 +72,16 @@ export default function TransactionsPage() {
         .eq('id', id);
 
       if (error) throw error;
+
+      if (targetTx) {
+        await createAuditLog({
+          transactionId: id,
+          action: 'DELETE',
+          itemName: targetTx.item,
+          details: `Deleted ${targetTx.type} transaction originally paid by ${targetTx.paid_by} (Rs ${targetTx.amount_pkr} / $${targetTx.amount_usd})`,
+        });
+      }
+
       toast.success('Transaction deleted successfully.');
       loadTransactions();
     } catch (err: unknown) {
@@ -91,11 +106,21 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5 print:hidden">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5 print:hidden">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">Ledger Registry</h2>
           <p className="text-sm text-slate-500">Record, filter, search, and manage all income and expense items.</p>
         </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setAuditModalOpen(true)}
+          className="flex items-center gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
+        >
+          <ShieldCheck className="h-4 w-4 text-slate-600" />
+          Audit Trail Log
+        </Button>
       </div>
 
       {/* Print-Only Title Header */}
@@ -122,6 +147,14 @@ export default function TransactionsPage() {
           key={activeTransaction?.id || 'new'}
         />
       )}
+
+      {auditModalOpen && (
+        <AuditLogModal
+          isOpen={auditModalOpen}
+          onClose={() => setAuditModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
+

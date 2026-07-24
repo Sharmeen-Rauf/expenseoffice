@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { createAuditLog } from '@/lib/audit';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import {
@@ -93,16 +94,37 @@ export function TransactionModal({
           .eq('id', transaction.id);
 
         if (error) throw error;
+
+        // Log audit
+        const changeDetails = `Updated details: Paid by ${payload.paid_by}, Category: ${payload.category}, Amounts: Rs ${payload.amount_pkr} / $${payload.amount_usd}`;
+        await createAuditLog({
+          transactionId: transaction.id,
+          action: 'UPDATE',
+          itemName: payload.item,
+          details: changeDetails,
+        });
+
         toast.success('Transaction updated successfully.');
       } else {
         // Create
-        // Get user session to track who created it
         const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase
+        const { data: createdData, error } = await supabase
           .from('transactions')
-          .insert([{ ...payload, created_by: user?.id }]);
+          .insert([{ ...payload, created_by: user?.id }])
+          .select()
+          .single();
 
         if (error) throw error;
+
+        // Log audit
+        const createDetails = `Added new ${payload.type} entry paid by ${payload.paid_by}. Amount: Rs ${payload.amount_pkr} / $${payload.amount_usd} (${payload.category})`;
+        await createAuditLog({
+          transactionId: createdData?.id,
+          action: 'CREATE',
+          itemName: payload.item,
+          details: createDetails,
+        });
+
         toast.success('Transaction added successfully.');
       }
       onSuccess();
