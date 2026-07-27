@@ -45,6 +45,9 @@ export async function addCategory(name: string): Promise<CategoryItem> {
     .single();
 
   if (error) {
+    if (error.message.includes('schema cache') || error.code === 'PGRST301' || error.message.includes('find the table')) {
+      throw new Error("Supabase Database table missing. Please run the SQL script in Supabase SQL Editor!");
+    }
     throw new Error(error.message || 'Failed to add category.');
   }
 
