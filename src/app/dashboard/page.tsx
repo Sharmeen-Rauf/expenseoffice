@@ -431,26 +431,16 @@ export default function DashboardPage() {
             {Object.entries(categoryTotals).map(([cat, amount]) => {
               const maxUSD = Math.max(...Object.values(categoryTotals).map(a => a.usd), 1);
               const progressPct = Math.round((amount.usd / maxUSD) * 100);
-              const isAlara = cat.toLowerCase().includes('alara') || cat.toLowerCase().includes('extra') || cat.toLowerCase().includes('misc');
 
               return (
                 <div key={cat} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-slate-700 flex items-center gap-1.5">
-                      {cat}
-                      {isAlara && (
-                        <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] py-0 px-1 font-bold">
-                          Extra/Misc
-                        </Badge>
-                      )}
-                    </span>
+                    <span className="text-slate-700">{cat}</span>
                     <span className="text-slate-900">{formatCurrency(amount.usd, true)} / <span className="text-slate-500 text-[10px]">{formatCurrency(amount.pkr, false)}</span></span>
                   </div>
                   <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                     <div 
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        isAlara ? 'bg-amber-500' : 'bg-slate-900'
-                      }`}
+                      className="h-full bg-slate-900 rounded-full transition-all duration-500" 
                       style={{ width: `${progressPct}%` }}
                     />
                   </div>

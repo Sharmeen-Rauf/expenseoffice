@@ -98,7 +98,7 @@ export default function LoginPage() {
             <ShieldCheck className="h-6 w-6" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            {isSignUp ? 'Create Corporate Account' : 'Sign In to ExpenseOffice'}
+            {isSignUp ? 'Create Corporate Account' : 'Sign In to Alara Expense'}
           </h2>
           <p className="mt-2 text-sm text-slate-600">
             {isSignUp ? 'Sign up to request financial access' : 'Enter your credentials to access the ledger'}

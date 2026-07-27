@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ExpenseOffice - Financial Management & Expense Tracker",
+  title: "Alara Expense - Financial Management & Expense Tracker",
   description: "Secure, role-based financial management and transaction tracking with USD/PKR dual-currency support.",
 };
 

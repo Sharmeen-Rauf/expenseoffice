@@ -62,10 +62,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             onClick={onClose}
             className="flex items-center gap-2 font-semibold text-slate-900"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-slate-900 text-white">
-              <span className="text-sm font-bold">EO</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded bg-slate-900 text-white shadow-xs">
+              <span className="text-sm font-bold tracking-wider">AE</span>
             </div>
-            <span className="text-lg tracking-tight font-extrabold">ExpenseOffice</span>
+            <span className="text-lg tracking-tight font-extrabold">Alara Expense</span>
           </Link>
 
           {/* Close button for mobile */}

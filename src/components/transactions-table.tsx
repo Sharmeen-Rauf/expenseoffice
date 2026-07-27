@@ -103,7 +103,7 @@ export function TransactionsTable({
       });
       worksheet['!cols'] = maxLens.map((w) => ({ wch: w }));
 
-      XLSX.writeFile(workbook, `ExpenseOffice_Ledger_${new Date().toLocaleDateString('en-CA')}.xlsx`);
+      XLSX.writeFile(workbook, `AlaraExpense_Ledger_${new Date().toLocaleDateString('en-CA')}.xlsx`);
       toast.success('Successfully exported Ledger to Excel (.xlsx)');
     } catch (err) {
       console.error(err);
@@ -136,7 +136,7 @@ export function TransactionsTable({
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.setAttribute('href', url);
-      link.setAttribute('download', `ExpenseOffice_Ledger_${new Date().toLocaleDateString('en-CA')}.csv`);
+      link.setAttribute('download', `AlaraExpense_Ledger_${new Date().toLocaleDateString('en-CA')}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

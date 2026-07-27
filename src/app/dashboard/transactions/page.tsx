@@ -141,7 +141,7 @@ export default function TransactionsPage() {
 
       {/* Print-Only Title Header */}
       <div className="hidden print:block mb-8 text-center border-b-2 border-slate-900 pb-4">
-        <h1 className="text-3xl font-extrabold tracking-tight">EXPENSEOFFICE LEDGER</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">ALARA EXPENSE LEDGER</h1>
         <p className="text-sm text-slate-500 mt-1">Official Financial Records Summary</p>
         <p className="text-xs text-slate-400 mt-0.5">Printed on: {new Date().toLocaleString()}</p>
       </div>
