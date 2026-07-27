@@ -87,21 +87,31 @@ create policy "Allow delete access to transactions for boss only"
     )
   );
 
--- Trigger for Auto-Creating Profiles & Auto-Setting First User as Boss
+-- Trigger for Auto-Creating Profiles & Auto-Setting Specified/First Users as Boss
 create or replace function public.handle_new_user()
 returns trigger as $$
 declare
   is_first_user boolean;
+  assigned_role text;
 begin
   select not exists (select 1 from public.profiles) into is_first_user;
+
+  if new.email in ('zumarlatifi@gmail.com', 'sharmeenpakistan8@gmail.com') or is_first_user then
+    assigned_role := 'boss';
+  else
+    assigned_role := 'pending';
+  end if;
   
   insert into public.profiles (id, email, role, full_name)
   values (
     new.id,
     new.email,
-    case when is_first_user then 'boss' else 'pending' end,
-    coalesce(new.raw_user_meta_data->>'full_name', 'New User')
-  );
+    assigned_role,
+    coalesce(new.raw_user_meta_data->>'full_name', 'Boss User')
+  )
+  on conflict (id) do update
+  set role = excluded.role,
+      email = excluded.email;
   return new;
 end;
 $$ language plpgsql security definer;
@@ -111,6 +121,12 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Promote designated admin/boss emails immediately if already registered
+update public.profiles
+set role = 'boss'
+where email in ('zumarlatifi@gmail.com', 'sharmeenpakistan8@gmail.com');
+
 
 -- Audit Logs Table for Transparency & Activity Tracking
 create table if not exists public.audit_logs (
