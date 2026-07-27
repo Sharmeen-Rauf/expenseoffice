@@ -8,6 +8,7 @@ export interface CategoryItem {
 
 export const DEFAULT_CATEGORIES: string[] = [
   'Office',
+  'Alara Expense',
   'Hardware',
   'Utilities',
   'Salaries',

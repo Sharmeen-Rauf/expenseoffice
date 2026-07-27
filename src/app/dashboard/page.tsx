@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { PaidByAnalytics } from '@/components/paid-by-analytics';
 import { AuditLogModal } from '@/components/audit-log-modal';
+import { CategoryManagerModal } from '@/components/category-manager-modal';
 import { toast } from 'sonner';
 import { 
   TrendingUp, 
@@ -15,10 +16,14 @@ import {
   ArrowDownRight,
   FileText,
   Loader2,
-  ShieldCheck
+  ShieldCheck,
+  Tags,
+  Sun,
+  CalendarCheck,
+  Clock,
+  Sparkles,
+  Activity
 } from 'lucide-react';
-import { CategoryManagerModal } from '@/components/category-manager-modal';
-import { Tags } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -43,6 +48,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [datePreset, setDatePreset] = useState<'all' | 'today' | 'yesterday' | '7days' | '30days'>('all');
   const [auditModalOpen, setAuditModalOpen] = useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
 
@@ -93,19 +99,57 @@ export default function DashboardPage() {
     }
   }, [role]);
 
-  // Apply filters in-memory
-  const filteredTransactions = transactions.filter((tx) => {
-    const txDate = new Date(tx.date);
-    const txMonth = String(txDate.getMonth() + 1).padStart(2, '0');
-    const txYear = String(txDate.getFullYear());
+  // Today's date calculations
+  const todayObj = new Date();
+  const todayStr = todayObj.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+  const yesterdayObj = new Date(Date.now() - 86400000);
+  const yesterdayStr = yesterdayObj.toLocaleDateString('en-CA');
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
 
+  // Calculate Today's specific totals
+  let todayIncomeUSD = 0;
+  let todayIncomePKR = 0;
+  let todayExpenseUSD = 0;
+  let todayExpensePKR = 0;
+  let todayCount = 0;
+
+  transactions.forEach((tx) => {
+    if (tx.date === todayStr) {
+      todayCount += 1;
+      if (tx.type === 'income') {
+        todayIncomeUSD += Number(tx.amount_usd || 0);
+        todayIncomePKR += Number(tx.amount_pkr || 0);
+      } else {
+        todayExpenseUSD += Number(tx.amount_usd || 0);
+        todayExpensePKR += Number(tx.amount_pkr || 0);
+      }
+    }
+  });
+
+  const todayNetUSD = todayIncomeUSD - todayExpenseUSD;
+  const todayNetPKR = todayIncomePKR - todayExpensePKR;
+
+  // Apply date filters in-memory
+  const filteredTransactions = transactions.filter((tx) => {
+    const txDateObj = new Date(tx.date);
+    const txMonth = String(txDateObj.getMonth() + 1).padStart(2, '0');
+    const txYear = String(txDateObj.getFullYear());
+
+    // Date Preset filter
+    if (datePreset === 'today' && tx.date !== todayStr) return false;
+    if (datePreset === 'yesterday' && tx.date !== yesterdayStr) return false;
+    if (datePreset === '7days' && txDateObj < sevenDaysAgo) return false;
+    if (datePreset === '30days' && txDateObj < thirtyDaysAgo) return false;
+
+    // Month & Year select filter
     const monthMatch = selectedMonth === 'all' || txMonth === selectedMonth;
     const yearMatch = selectedYear === 'all' || txYear === selectedYear;
 
     return monthMatch && yearMatch;
   });
 
-  // Calculate totals
+  // Calculate overall totals for filtered subset
   let totalIncomeUSD = 0;
   let totalIncomePKR = 0;
   let totalExpenseUSD = 0;
@@ -154,6 +198,83 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* TODAY'S LIVE SUMMARY WIDGET BANNER */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-950 text-white p-6 rounded-xl shadow-lg border border-slate-800 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg">
+              <Sun className="h-5 w-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-white tracking-tight">Today's Live Financial Summary</h3>
+                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]">
+                  LIVE REALTIME
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {todayObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                <span className="ml-2 text-slate-500">• {todayCount} entries today</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => setDatePreset(datePreset === 'today' ? 'all' : 'today')}
+              className={`text-xs font-semibold rounded-md border ${
+                datePreset === 'today'
+                  ? 'bg-white text-slate-900 border-white font-bold shadow-md'
+                  : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <CalendarCheck className="h-3.5 w-3.5 mr-1.5" />
+              {datePreset === 'today' ? 'Viewing Today Only' : 'Filter Today Only'}
+            </Button>
+          </div>
+        </div>
+
+        {/* 3 Today Stat Mini-Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+          {/* Today Income */}
+          <div className="bg-slate-900/80 p-4 border border-slate-800 rounded-lg flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs text-emerald-400 font-semibold mb-1">
+              <span>Today's Income</span>
+              <ArrowUpRight className="h-4 w-4 text-emerald-400" />
+            </div>
+            <div>
+              <div className="text-xl font-bold text-white">{formatCurrency(todayIncomeUSD, true)}</div>
+              <div className="text-xs font-medium text-emerald-400/90 mt-0.5">{formatCurrency(todayIncomePKR, false)}</div>
+            </div>
+          </div>
+
+          {/* Today Expense */}
+          <div className="bg-slate-900/80 p-4 border border-slate-800 rounded-lg flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs text-rose-400 font-semibold mb-1">
+              <span>Today's Expense</span>
+              <ArrowDownRight className="h-4 w-4 text-rose-400" />
+            </div>
+            <div>
+              <div className="text-xl font-bold text-white">{formatCurrency(todayExpenseUSD, true)}</div>
+              <div className="text-xs font-medium text-rose-400/90 mt-0.5">{formatCurrency(todayExpensePKR, false)}</div>
+            </div>
+          </div>
+
+          {/* Today Net Balance */}
+          <div className="bg-slate-900/80 p-4 border border-slate-800 rounded-lg flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs text-amber-400 font-semibold mb-1">
+              <span>Today's Cashflow</span>
+              <Wallet className="h-4 w-4 text-amber-400" />
+            </div>
+            <div>
+              <div className="text-xl font-bold text-white">{formatCurrency(todayNetUSD, true)}</div>
+              <div className="text-xs font-medium text-slate-300 mt-0.5">{formatCurrency(todayNetPKR, false)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Filters & Title Section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5">
         <div>
@@ -215,6 +336,35 @@ export default function DashboardPage() {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* QUICK DATE RANGE PRESET PILL TABS */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1 shrink-0 flex items-center gap-1">
+          <Clock className="h-3.5 w-3.5 text-slate-400" /> Range:
+        </span>
+        {[
+          { key: 'all', label: 'All Time' },
+          { key: 'today', label: 'Today' },
+          { key: 'yesterday', label: 'Yesterday' },
+          { key: '7days', label: 'Last 7 Days' },
+          { key: '30days', label: 'Last 30 Days' },
+        ].map((tab) => {
+          const isActive = datePreset === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setDatePreset(tab.key as any)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-all shrink-0 border ${
+                isActive
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Main stat cards */}
@@ -281,16 +431,26 @@ export default function DashboardPage() {
             {Object.entries(categoryTotals).map(([cat, amount]) => {
               const maxUSD = Math.max(...Object.values(categoryTotals).map(a => a.usd), 1);
               const progressPct = Math.round((amount.usd / maxUSD) * 100);
+              const isAlara = cat.toLowerCase().includes('alara') || cat.toLowerCase().includes('extra') || cat.toLowerCase().includes('misc');
 
               return (
                 <div key={cat} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-slate-700">{cat}</span>
+                    <span className="text-slate-700 flex items-center gap-1.5">
+                      {cat}
+                      {isAlara && (
+                        <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] py-0 px-1 font-bold">
+                          Extra/Misc
+                        </Badge>
+                      )}
+                    </span>
                     <span className="text-slate-900">{formatCurrency(amount.usd, true)} / <span className="text-slate-500 text-[10px]">{formatCurrency(amount.pkr, false)}</span></span>
                   </div>
                   <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-slate-900 rounded-full transition-all duration-500" 
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        isAlara ? 'bg-amber-500' : 'bg-slate-900'
+                      }`}
                       style={{ width: `${progressPct}%` }}
                     />
                   </div>
