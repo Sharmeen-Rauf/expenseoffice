@@ -148,3 +148,37 @@ create policy "Allow insert access to audit logs for boss and manager"
     )
   );
 
+-- Remove hardcoded category check constraint to allow custom categories
+alter table public.transactions drop constraint if exists transactions_category_check;
+
+-- Dynamic Categories Table
+create table if not exists public.categories (
+  id uuid default gen_random_uuid() primary key,
+  name text unique not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Seed initial categories
+insert into public.categories (name)
+values ('Office'), ('Hardware'), ('Utilities'), ('Salaries'), ('Investment')
+on conflict (name) do nothing;
+
+-- RLS for Categories Table
+alter table public.categories enable row level security;
+
+create policy "Allow read access to categories for authenticated users"
+  on public.categories for select
+  to authenticated
+  using (true);
+
+create policy "Allow all management on categories for boss"
+  on public.categories for all
+  to authenticated
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'boss'
+    )
+  );
+
+

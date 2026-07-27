@@ -7,8 +7,9 @@ import { createAuditLog } from '@/lib/audit';
 import { TransactionsTable } from '@/components/transactions-table';
 import { TransactionModal } from '@/components/transaction-modal';
 import { AuditLogModal } from '@/components/audit-log-modal';
+import { CategoryManagerModal } from '@/components/category-manager-modal';
 import { toast } from 'sonner';
-import { Loader2, ShieldCheck } from 'lucide-react';
+import { Loader2, ShieldCheck, Tags } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Transaction {
@@ -21,7 +22,7 @@ interface Transaction {
   amount_usd: number;
   amount_pkr: number;
   paid_by: string;
-  category: 'Office' | 'Hardware' | 'Utilities' | 'Salaries' | 'Investment';
+  category: string;
 }
 
 export default function TransactionsPage() {
@@ -30,6 +31,7 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [auditModalOpen, setAuditModalOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [activeTransaction, setActiveTransaction] = useState<Transaction | null>(null);
 
   const loadTransactions = async () => {
@@ -112,15 +114,29 @@ export default function TransactionsPage() {
           <p className="text-sm text-slate-500">Record, filter, search, and manage all income and expense items.</p>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setAuditModalOpen(true)}
-          className="flex items-center gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
-        >
-          <ShieldCheck className="h-4 w-4 text-slate-600" />
-          Audit Trail Log
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {role === 'boss' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCategoryModalOpen(true)}
+              className="flex items-center gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
+            >
+              <Tags className="h-4 w-4 text-slate-600" />
+              Manage Categories
+            </Button>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAuditModalOpen(true)}
+            className="flex items-center gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
+          >
+            <ShieldCheck className="h-4 w-4 text-slate-600" />
+            Audit Trail Log
+          </Button>
+        </div>
       </div>
 
       {/* Print-Only Title Header */}
@@ -152,6 +168,14 @@ export default function TransactionsPage() {
         <AuditLogModal
           isOpen={auditModalOpen}
           onClose={() => setAuditModalOpen(false)}
+        />
+      )}
+
+      {categoryModalOpen && (
+        <CategoryManagerModal
+          isOpen={categoryModalOpen}
+          onClose={() => setCategoryModalOpen(false)}
+          onCategoriesChange={loadTransactions}
         />
       )}
     </div>

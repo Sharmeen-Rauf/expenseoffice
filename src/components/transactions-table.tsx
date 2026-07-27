@@ -52,7 +52,7 @@ interface Transaction {
   amount_usd: number;
   amount_pkr: number;
   paid_by: string;
-  category: 'Office' | 'Hardware' | 'Utilities' | 'Salaries' | 'Investment';
+  category: string;
 }
 
 interface TransactionsTableProps {
@@ -342,11 +342,20 @@ export function TransactionsTable({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="Office">Office</SelectItem>
-              <SelectItem value="Hardware">Hardware</SelectItem>
-              <SelectItem value="Utilities">Utilities</SelectItem>
-              <SelectItem value="Salaries">Salaries</SelectItem>
-              <SelectItem value="Investment">Investment</SelectItem>
+              {Array.from(
+                new Set([
+                  'Office',
+                  'Hardware',
+                  'Utilities',
+                  'Salaries',
+                  'Investment',
+                  ...data.map((tx) => tx.category).filter(Boolean),
+                ])
+              ).map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 

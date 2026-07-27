@@ -17,6 +17,8 @@ import {
   Loader2,
   ShieldCheck
 } from 'lucide-react';
+import { CategoryManagerModal } from '@/components/category-manager-modal';
+import { Tags } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,7 +34,7 @@ interface Transaction {
   amount_usd: number;
   amount_pkr: number;
   paid_by: string;
-  category: 'Office' | 'Hardware' | 'Utilities' | 'Salaries' | 'Investment';
+  category: string;
 }
 
 export default function DashboardPage() {
@@ -42,6 +44,7 @@ export default function DashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [auditModalOpen, setAuditModalOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
 
   // Filter lists
   const months = [
@@ -121,20 +124,16 @@ export default function DashboardPage() {
   const netUSD = totalIncomeUSD - totalExpenseUSD;
   const netPKR = totalIncomePKR - totalExpensePKR;
 
-  // Category summary calculation
-  const categoryTotals: Record<string, { usd: number; pkr: number }> = {
-    Office: { usd: 0, pkr: 0 },
-    Hardware: { usd: 0, pkr: 0 },
-    Utilities: { usd: 0, pkr: 0 },
-    Salaries: { usd: 0, pkr: 0 },
-    Investment: { usd: 0, pkr: 0 },
-  };
+  // Category summary calculation dynamically
+  const categoryTotals: Record<string, { usd: number; pkr: number }> = {};
 
   filteredTransactions.forEach((tx) => {
-    if (categoryTotals[tx.category]) {
-      categoryTotals[tx.category].usd += Number(tx.amount_usd || 0);
-      categoryTotals[tx.category].pkr += Number(tx.amount_pkr || 0);
+    const cat = tx.category || 'General';
+    if (!categoryTotals[cat]) {
+      categoryTotals[cat] = { usd: 0, pkr: 0 };
     }
+    categoryTotals[cat].usd += Number(tx.amount_usd || 0);
+    categoryTotals[cat].pkr += Number(tx.amount_pkr || 0);
   });
 
   const recentTransactions = filteredTransactions.slice(0, 5);
@@ -163,6 +162,18 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {role === 'boss' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCategoryModalOpen(true)}
+              className="flex items-center gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
+            >
+              <Tags className="h-4 w-4 text-slate-600" />
+              Manage Categories
+            </Button>
+          )}
+
           <Button
             variant="outline"
             size="sm"
@@ -358,6 +369,14 @@ export default function DashboardPage() {
         <AuditLogModal
           isOpen={auditModalOpen}
           onClose={() => setAuditModalOpen(false)}
+        />
+      )}
+
+      {/* Category Manager Modal */}
+      {categoryModalOpen && (
+        <CategoryManagerModal
+          isOpen={categoryModalOpen}
+          onClose={() => setCategoryModalOpen(false)}
         />
       )}
     </div>

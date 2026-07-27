@@ -14,7 +14,7 @@ export interface Transaction {
   amount_usd: number;
   amount_pkr: number;
   paid_by: string;
-  category: 'Office' | 'Hardware' | 'Utilities' | 'Salaries' | 'Investment';
+  category: string;
 }
 
 interface PaidByAnalyticsProps {

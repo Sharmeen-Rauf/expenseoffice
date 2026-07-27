@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { createAuditLog } from '@/lib/audit';
+import { fetchCategories, CategoryItem } from '@/lib/categories';
+import { CategoryManagerModal } from '@/components/category-manager-modal';
+import { useAuth } from '@/context/auth';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -33,7 +36,7 @@ interface Transaction {
   amount_usd: number;
   amount_pkr: number;
   paid_by: string;
-  category: 'Office' | 'Hardware' | 'Utilities' | 'Salaries' | 'Investment';
+  category: string;
 }
 
 interface TransactionModalProps {
@@ -43,16 +46,17 @@ interface TransactionModalProps {
   transaction?: Transaction | null; // If editing, pass transaction data
 }
 
-type CategoryType = 'Office' | 'Hardware' | 'Utilities' | 'Salaries' | 'Investment';
-
 export function TransactionModal({
   isOpen,
   onClose,
   onSuccess,
   transaction,
 }: TransactionModalProps) {
+  const { role } = useAuth();
   const isEditing = !!transaction?.id;
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
 
   // Form states initialized directly from props (reset on remount via key)
   const [date, setDate] = useState(transaction?.date || new Date().toLocaleDateString('en-CA'));
@@ -63,7 +67,25 @@ export function TransactionModal({
   const [amountUsd, setAmountUsd] = useState(transaction ? String(transaction.amount_usd) : '0');
   const [amountPkr, setAmountPkr] = useState(transaction ? String(transaction.amount_pkr) : '0');
   const [paidBy, setPaidBy] = useState(transaction?.paid_by || '');
-  const [category, setCategory] = useState<CategoryType>(transaction?.category || 'Office');
+  const [category, setCategory] = useState<string>(transaction?.category || 'Office');
+
+  const loadCategories = async () => {
+    try {
+      const list = await fetchCategories();
+      setCategories(list);
+      if (!category && list.length > 0) {
+        setCategory(list[0].name);
+      }
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      loadCategories();
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +104,7 @@ export function TransactionModal({
       amount_usd: parseFloat(amountUsd) || 0,
       amount_pkr: parseFloat(amountPkr) || 0,
       paid_by: paidBy.trim(),
-      category,
+      category: category || 'Office',
     };
 
     try {
@@ -207,17 +229,32 @@ export function TransactionModal({
           <div className="grid grid-cols-2 gap-4">
             {/* Category */}
             <div className="space-y-1.5">
-              <Label htmlFor="category">Category</Label>
-              <Select value={category} onValueChange={(val) => setCategory((val as CategoryType) || 'Office')}>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="category">Category</Label>
+                {role === 'boss' && (
+                  <button
+                    type="button"
+                    onClick={() => setCategoryManagerOpen(true)}
+                    className="text-[11px] font-semibold text-slate-700 hover:text-slate-950 flex items-center gap-0.5 hover:underline"
+                  >
+                    <Plus className="h-3 w-3" /> Add Category
+                  </button>
+                )}
+              </div>
+              <Select value={category} onValueChange={(val) => setCategory(val || 'Office')}>
                 <SelectTrigger id="category" className="border-slate-200 bg-white">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Office">Office</SelectItem>
-                  <SelectItem value="Hardware">Hardware</SelectItem>
-                  <SelectItem value="Utilities">Utilities</SelectItem>
-                  <SelectItem value="Salaries">Salaries</SelectItem>
-                  <SelectItem value="Investment">Investment</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id || cat.name} value={cat.name}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                  {/* Ensure current category is listed if custom */}
+                  {category && !categories.some((c) => c.name === category) && (
+                    <SelectItem value={category}>{category}</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -308,6 +345,15 @@ export function TransactionModal({
             </Button>
           </DialogFooter>
         </form>
+
+        {/* Category Manager Modal */}
+        {categoryManagerOpen && (
+          <CategoryManagerModal
+            isOpen={categoryManagerOpen}
+            onClose={() => setCategoryManagerOpen(false)}
+            onCategoriesChange={loadCategories}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
