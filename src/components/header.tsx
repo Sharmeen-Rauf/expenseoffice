@@ -17,6 +17,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
   // Get Page Title from Route
   const getPageTitle = () => {
     if (pathname.startsWith('/dashboard/transactions')) return 'Transactions Registry';
+    if (pathname.startsWith('/dashboard/sales')) return 'Sales & Client Leads Registry';
     if (pathname.startsWith('/dashboard/users')) return 'User Access Controls';
     return 'Financial Analytics';
   };

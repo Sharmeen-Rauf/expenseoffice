@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth';
-import { LayoutDashboard, ReceiptText, Users, LogOut, ShieldAlert, X } from 'lucide-react';
+import { LayoutDashboard, ReceiptText, Users, LogOut, ShieldAlert, X, Handshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -27,6 +27,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       name: 'Transactions',
       href: '/dashboard/transactions',
       icon: ReceiptText,
+      roles: ['boss', 'manager'],
+    },
+    {
+      name: 'Sales & Leads',
+      href: '/dashboard/sales',
+      icon: Handshake,
       roles: ['boss', 'manager'],
     },
     {

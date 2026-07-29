@@ -197,4 +197,65 @@ create policy "Allow all management on categories for boss"
     )
   );
 
+-- Sales Leads & Client Receivable Tracker Table
+create table if not exists public.sales_leads (
+  id uuid default gen_random_uuid() primary key,
+  date date not null default current_date,
+  client_name text not null,
+  lead_title text not null,
+  lead_details text,
+  currency text not null check (currency in ('USD', 'PKR')) default 'PKR',
+  deal_amount_usd numeric(15, 2) not null default 0.00,
+  deal_amount_pkr numeric(15, 2) not null default 0.00,
+  received_amount_usd numeric(15, 2) not null default 0.00,
+  received_amount_pkr numeric(15, 2) not null default 0.00,
+  status text not null check (status in ('pending', 'partially_paid', 'paid', 'cancelled')) default 'pending',
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Enable RLS for sales_leads
+alter table public.sales_leads enable row level security;
+
+create policy "Allow read access to sales_leads for boss and manager"
+  on public.sales_leads for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role in ('boss', 'manager')
+    )
+  );
+
+create policy "Allow insert access to sales_leads for boss and manager"
+  on public.sales_leads for insert
+  to authenticated
+  with check (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role in ('boss', 'manager')
+    )
+  );
+
+create policy "Allow update access to sales_leads for boss and manager"
+  on public.sales_leads for update
+  to authenticated
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role in ('boss', 'manager')
+    )
+  );
+
+create policy "Allow delete access to sales_leads for boss only"
+  on public.sales_leads for delete
+  to authenticated
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'boss'
+    )
+  );
+
+
 
