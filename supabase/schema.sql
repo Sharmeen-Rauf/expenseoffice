@@ -204,6 +204,8 @@ create table if not exists public.sales_leads (
   client_name text not null,
   lead_title text not null,
   lead_details text,
+  lead_count integer not null default 1,
+  cycle_name text default 'General Batch',
   currency text not null check (currency in ('USD', 'PKR')) default 'PKR',
   deal_amount_usd numeric(15, 2) not null default 0.00,
   deal_amount_pkr numeric(15, 2) not null default 0.00,
@@ -213,6 +215,10 @@ create table if not exists public.sales_leads (
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Add missing columns if table already exists
+alter table public.sales_leads add column if not exists lead_count integer not null default 1;
+alter table public.sales_leads add column if not exists cycle_name text default 'General Batch';
 
 -- Enable RLS for sales_leads
 alter table public.sales_leads enable row level security;
@@ -256,6 +262,41 @@ create policy "Allow delete access to sales_leads for boss only"
       where id = auth.uid() and role = 'boss'
     )
   );
+
+-- Payment Installments Sub-Table for Sales Leads
+create table if not exists public.sales_lead_payments (
+  id uuid default gen_random_uuid() primary key,
+  lead_id uuid references public.sales_leads(id) on delete cascade not null,
+  payment_date date not null default current_date,
+  amount_pkr numeric(15, 2) not null default 0.00,
+  amount_usd numeric(15, 2) not null default 0.00,
+  payment_notes text,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.sales_lead_payments enable row level security;
+
+create policy "Allow read access to sales_lead_payments for boss and manager"
+  on public.sales_lead_payments for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role in ('boss', 'manager')
+    )
+  );
+
+create policy "Allow insert access to sales_lead_payments for boss and manager"
+  on public.sales_lead_payments for insert
+  to authenticated
+  with check (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role in ('boss', 'manager')
+    )
+  );
+
 
 
 

@@ -9,6 +9,8 @@ import {
 } from '@/lib/sales';
 import { createAuditLog } from '@/lib/audit';
 import { SalesLeadModal } from '@/components/sales-lead-modal';
+import { PaymentInstallmentModal } from '@/components/payment-installment-modal';
+import { ClientProfileModal } from '@/components/client-profile-modal';
 import { toast } from 'sonner';
 import { 
   Briefcase, 
@@ -23,7 +25,11 @@ import {
   Loader2, 
   Handshake,
   TrendingUp,
-  Filter
+  Filter,
+  User,
+  CreditCard,
+  FileSpreadsheet,
+  Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,8 +54,16 @@ export default function SalesLeadsPage() {
   const { role } = useAuth();
   const [leads, setLeads] = useState<SalesLead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
+
+  // Modals state
+  const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [activeLead, setActiveLead] = useState<SalesLead | null>(null);
+
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [leadForPayment, setLeadForPayment] = useState<SalesLead | null>(null);
+
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [selectedClientForProfile, setSelectedClientForProfile] = useState<string | null>(null);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,9 +89,13 @@ export default function SalesLeadsPage() {
     }
   }, [role]);
 
-  // Unique clients list
+  // Unique clients list (defaults to Salma if available)
   const uniqueClients = useMemo(() => {
-    return Array.from(new Set(leads.map((l) => l.client_name).filter(Boolean)));
+    const set = new Set(leads.map((l) => l.client_name).filter(Boolean));
+    if (!set.has('Salma') && leads.length > 0) {
+      set.add('Salma');
+    }
+    return Array.from(set);
   }, [leads]);
 
   // Filtered Leads
@@ -90,13 +108,15 @@ export default function SalesLeadsPage() {
         const matchesClient = lead.client_name.toLowerCase().includes(query);
         const matchesTitle = lead.lead_title.toLowerCase().includes(query);
         const matchesDetails = (lead.lead_details || '').toLowerCase().includes(query);
-        return matchesClient || matchesTitle || matchesDetails;
+        const matchesCycle = (lead.cycle_name || '').toLowerCase().includes(query);
+        return matchesClient || matchesTitle || matchesDetails || matchesCycle;
       }
       return true;
     });
   }, [leads, statusFilter, clientFilter, searchTerm]);
 
   // Calculate totals
+  let totalLeadCount = 0;
   let totalDealUSD = 0;
   let totalDealPKR = 0;
   let totalReceivedUSD = 0;
@@ -104,6 +124,7 @@ export default function SalesLeadsPage() {
 
   filteredLeads.forEach((l) => {
     if (l.status !== 'cancelled') {
+      totalLeadCount += Number(l.lead_count || 1);
       totalDealUSD += Number(l.deal_amount_usd || 0);
       totalDealPKR += Number(l.deal_amount_pkr || 0);
       totalReceivedUSD += Number(l.received_amount_usd || 0);
@@ -114,9 +135,25 @@ export default function SalesLeadsPage() {
   const totalOutstandingUSD = Math.max(0, totalDealUSD - totalReceivedUSD);
   const totalOutstandingPKR = Math.max(0, totalDealPKR - totalReceivedPKR);
 
+  // Active Client Leads for Profile Modal
+  const activeClientLeads = useMemo(() => {
+    if (!selectedClientForProfile) return [];
+    return leads.filter((l) => l.client_name === selectedClientForProfile);
+  }, [leads, selectedClientForProfile]);
+
   const handleEdit = (lead: SalesLead) => {
     setActiveLead(lead);
-    setModalOpen(true);
+    setLeadModalOpen(true);
+  };
+
+  const handleAddPayment = (lead: SalesLead) => {
+    setLeadForPayment(lead);
+    setPaymentModalOpen(true);
+  };
+
+  const handleOpenClientProfile = (clientName: string) => {
+    setSelectedClientForProfile(clientName);
+    setProfileModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -189,38 +226,134 @@ export default function SalesLeadsPage() {
       {/* Header Banner */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Sales & Client Leads Tracker</h2>
-          <p className="text-sm text-slate-500">Record leads given to clients, deal volume, received cash, and outstanding dues.</p>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Sales & Client Leads Registry</h2>
+          <p className="text-sm text-slate-500">Track client lead batches (e.g. Salma 7-day cycles), deal amounts, partial payments, and due balances.</p>
         </div>
 
-        <Button
-          onClick={() => {
-            setActiveLead(null);
-            setModalOpen(true);
-          }}
-          className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs flex items-center gap-1.5"
-        >
-          <Plus className="h-4 w-4" />
-          Record Sales Lead
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              setActiveLead(null);
+              setLeadModalOpen(true);
+            }}
+            className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs flex items-center gap-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            Record Lead Batch
+          </Button>
+        </div>
       </div>
+
+      {/* Quick Client Filter Switcher Bar */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1 shrink-0 flex items-center gap-1">
+          <User className="h-3.5 w-3.5 text-slate-400" /> Client:
+        </span>
+        <button
+          onClick={() => setClientFilter('all')}
+          className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all shrink-0 border ${
+            clientFilter === 'all'
+              ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+          }`}
+        >
+          All Clients
+        </button>
+
+        {uniqueClients.map((client) => {
+          const isActive = clientFilter === client;
+          return (
+            <button
+              key={client}
+              onClick={() => setClientFilter(client)}
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all shrink-0 border flex items-center gap-1.5 ${
+                isActive
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              <span>{client}</span>
+              {client.toLowerCase().includes('salma') && (
+                <Badge className="bg-amber-400 text-slate-950 font-bold text-[9px] py-0 px-1">
+                  VIP Partner
+                </Badge>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Selected Client Specific Hero Card (e.g. Salma Profile Banner) */}
+      {clientFilter !== 'all' && (
+        <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-950 text-white p-6 rounded-xl shadow-lg border border-slate-800 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg">
+                <User className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-bold text-white tracking-tight">Client Account: {clientFilter}</h3>
+                  <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]">
+                    7-DAY CYCLE PARTNER
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Showing lead batches, deal settlements, and installment payment history for {clientFilter}.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={() => handleOpenClientProfile(clientFilter)}
+              className="bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs shadow-md flex items-center gap-1.5"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-slate-800" />
+              View {clientFilter}'s Full Account Statement
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-slate-900/80 p-3.5 border border-slate-800 rounded-lg">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Leads Provided</span>
+              <span className="text-lg font-bold text-white mt-1 block">{totalLeadCount} Leads</span>
+            </div>
+
+            <div className="bg-slate-900/80 p-3.5 border border-slate-800 rounded-lg">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Total Deal Volume</span>
+              <span className="text-lg font-bold text-white mt-1 block">{formatPKR(totalDealPKR)}</span>
+            </div>
+
+            <div className="bg-slate-900/80 p-3.5 border border-slate-800 rounded-lg">
+              <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block">Cash Received</span>
+              <span className="text-lg font-bold text-emerald-400 mt-1 block">{formatPKR(totalReceivedPKR)}</span>
+            </div>
+
+            <div className="bg-slate-900/80 p-3.5 border border-slate-800 rounded-lg">
+              <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider block">Remaining Due</span>
+              <span className="text-lg font-bold text-amber-400 mt-1 block">{formatPKR(totalOutstandingPKR)}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 4 Stat Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Card 1: Total Leads */}
         <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-xs space-y-2">
           <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Total Leads Given</span>
+            <span>Total Leads Sent</span>
             <Handshake className="h-4 w-4 text-slate-400" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">{filteredLeads.length}</div>
-          <p className="text-[11px] text-slate-400">Active client entries</p>
+          <div className="text-2xl font-extrabold text-slate-900">{totalLeadCount} Leads</div>
+          <p className="text-[11px] text-slate-400">{filteredLeads.length} batch records</p>
         </div>
 
         {/* Card 2: Total Agreed Deal Value */}
         <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-xs space-y-2">
           <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Total Deal Value</span>
+            <span>Total Deal Volume</span>
             <Briefcase className="h-4 w-4 text-slate-400" />
           </div>
           <div className="text-xl font-bold text-slate-900">{formatPKR(totalDealPKR)}</div>
@@ -254,26 +387,12 @@ export default function SalesLeadsPage() {
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Search client, lead title, notes..."
+              placeholder="Search client, batch, lead title..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 h-9 text-xs border-slate-200"
             />
           </div>
-
-          <Select value={clientFilter} onValueChange={(val) => setClientFilter(val || 'all')}>
-            <SelectTrigger className="w-[150px] h-9 text-xs border-slate-200 bg-white">
-              <SelectValue placeholder="All Clients" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Clients</SelectItem>
-              {uniqueClients.map((client) => (
-                <SelectItem key={client} value={client}>
-                  {client}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
           <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'all')}>
             <SelectTrigger className="w-[130px] h-9 text-xs border-slate-200 bg-white">
@@ -299,9 +418,10 @@ export default function SalesLeadsPage() {
         <Table>
           <TableHeader className="bg-slate-50 border-b border-slate-200">
             <TableRow>
-              <TableHead className="text-slate-700 font-bold">Date</TableHead>
+              <TableHead className="text-slate-700 font-bold">Date & Cycle</TableHead>
               <TableHead className="text-slate-700 font-bold">Client / Partner</TableHead>
               <TableHead className="text-slate-700 font-bold">Lead Project Title</TableHead>
+              <TableHead className="text-slate-700 font-bold">Leads Count</TableHead>
               <TableHead className="text-slate-700 font-bold">Agreed Deal</TableHead>
               <TableHead className="text-slate-700 font-bold">Paid by Client</TableHead>
               <TableHead className="text-slate-700 font-bold">Balance Due</TableHead>
@@ -312,7 +432,7 @@ export default function SalesLeadsPage() {
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-32 text-center text-slate-500 text-xs font-medium">
+                <TableCell colSpan={9} className="h-32 text-center text-slate-500 text-xs font-medium">
                   No sales lead records match your search criteria.
                 </TableCell>
               </TableRow>
@@ -325,9 +445,17 @@ export default function SalesLeadsPage() {
                   <TableRow key={lead.id} className="hover:bg-slate-50/70 border-b border-slate-100 transition-colors">
                     <TableCell className="py-3 px-4 font-medium text-slate-900 text-xs whitespace-nowrap">
                       {lead.date}
+                      <span className="text-[10px] text-slate-500 block font-normal">{lead.cycle_name || '7-Day Batch'}</span>
                     </TableCell>
                     <TableCell className="py-3 px-4 font-bold text-slate-900 text-xs whitespace-nowrap">
-                      {lead.client_name}
+                      <button
+                        onClick={() => handleOpenClientProfile(lead.client_name)}
+                        className="hover:underline text-left flex items-center gap-1 text-slate-900"
+                        title="Click to view full client statement"
+                      >
+                        <User className="h-3.5 w-3.5 text-slate-500" />
+                        {lead.client_name}
+                      </button>
                     </TableCell>
                     <TableCell className="py-3 px-4">
                       <div className="flex flex-col">
@@ -338,6 +466,11 @@ export default function SalesLeadsPage() {
                           </span>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="py-3 px-4 font-semibold text-slate-700 text-xs whitespace-nowrap">
+                      <Badge variant="outline" className="text-xs bg-slate-50">
+                        {lead.lead_count || 1} Leads
+                      </Badge>
                     </TableCell>
                     <TableCell className="py-3 px-4 font-bold text-slate-900 text-xs whitespace-nowrap">
                       {formatPKR(lead.deal_amount_pkr)} <span className="text-slate-400 font-normal">/</span> {formatUSD(lead.deal_amount_usd)}
@@ -353,6 +486,15 @@ export default function SalesLeadsPage() {
                     </TableCell>
                     <TableCell className="py-3 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          size="sm"
+                          onClick={() => handleAddPayment(lead)}
+                          className="h-7 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1"
+                          title="Record Partial Payment"
+                        >
+                          <CreditCard className="h-3 w-3" />
+                          + Installment
+                        </Button>
                         <Button
                           variant="outline"
                           size="icon"
@@ -384,13 +526,39 @@ export default function SalesLeadsPage() {
       </div>
 
       {/* Sales Lead Modal */}
-      {modalOpen && (
+      {leadModalOpen && (
         <SalesLeadModal
-          isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
+          isOpen={leadModalOpen}
+          onClose={() => setLeadModalOpen(false)}
           onSuccess={loadLeads}
           lead={activeLead}
           key={activeLead?.id || 'new'}
+        />
+      )}
+
+      {/* Payment Installment Modal */}
+      {paymentModalOpen && leadForPayment && (
+        <PaymentInstallmentModal
+          isOpen={paymentModalOpen}
+          onClose={() => setPaymentModalOpen(false)}
+          onSuccess={loadLeads}
+          lead={leadForPayment}
+          key={`payment-${leadForPayment.id}`}
+        />
+      )}
+
+      {/* Client Profile Statement Modal */}
+      {profileModalOpen && selectedClientForProfile && (
+        <ClientProfileModal
+          isOpen={profileModalOpen}
+          onClose={() => setProfileModalOpen(false)}
+          clientName={selectedClientForProfile}
+          clientLeads={activeClientLeads}
+          onAddPaymentClick={(lead) => {
+            setProfileModalOpen(false);
+            handleAddPayment(lead);
+          }}
+          key={`profile-${selectedClientForProfile}`}
         />
       )}
     </div>

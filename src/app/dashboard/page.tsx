@@ -6,6 +6,8 @@ import { useAuth } from '@/context/auth';
 import { PaidByAnalytics } from '@/components/paid-by-analytics';
 import { AuditLogModal } from '@/components/audit-log-modal';
 import { CategoryManagerModal } from '@/components/category-manager-modal';
+import { MonthlyTrendsChart } from '@/components/monthly-trends-chart';
+import { MonthlyPerformanceSheet } from '@/components/monthly-performance-sheet';
 import { toast } from 'sonner';
 import { 
   TrendingUp, 
@@ -129,6 +131,48 @@ export default function DashboardPage() {
 
   const todayNetUSD = todayIncomeUSD - todayExpenseUSD;
   const todayNetPKR = todayIncomePKR - todayExpensePKR;
+
+  // Monthly Comparison (This Month vs Last Month)
+  const nowObj = new Date();
+  const currentMonthKey = `${nowObj.getFullYear()}-${String(nowObj.getMonth() + 1).padStart(2, '0')}`;
+  const lastMonthObj = new Date(nowObj.getFullYear(), nowObj.getMonth() - 1, 1);
+  const lastMonthKey = `${lastMonthObj.getFullYear()}-${String(lastMonthObj.getMonth() + 1).padStart(2, '0')}`;
+  const lastMonthLabel = lastMonthObj.toLocaleString('en-US', { month: 'long' });
+  const thisMonthLabel = nowObj.toLocaleString('en-US', { month: 'long' });
+
+  let thisMonthIncomeUSD = 0, thisMonthIncomePKR = 0, thisMonthExpenseUSD = 0, thisMonthExpensePKR = 0;
+  let lastMonthIncomeUSD = 0, lastMonthIncomePKR = 0, lastMonthExpenseUSD = 0, lastMonthExpensePKR = 0;
+
+  transactions.forEach((tx) => {
+    if (!tx.date) return;
+    const mKey = tx.date.substring(0, 7);
+    if (mKey === currentMonthKey) {
+      if (tx.type === 'income') {
+        thisMonthIncomeUSD += Number(tx.amount_usd || 0);
+        thisMonthIncomePKR += Number(tx.amount_pkr || 0);
+      } else {
+        thisMonthExpenseUSD += Number(tx.amount_usd || 0);
+        thisMonthExpensePKR += Number(tx.amount_pkr || 0);
+      }
+    } else if (mKey === lastMonthKey) {
+      if (tx.type === 'income') {
+        lastMonthIncomeUSD += Number(tx.amount_usd || 0);
+        lastMonthIncomePKR += Number(tx.amount_pkr || 0);
+      } else {
+        lastMonthExpenseUSD += Number(tx.amount_usd || 0);
+        lastMonthExpensePKR += Number(tx.amount_pkr || 0);
+      }
+    }
+  });
+
+  const thisMonthNetUSD = thisMonthIncomeUSD - thisMonthExpenseUSD;
+  const thisMonthNetPKR = thisMonthIncomePKR - thisMonthExpensePKR;
+  const lastMonthNetUSD = lastMonthIncomeUSD - lastMonthExpenseUSD;
+  const lastMonthNetPKR = lastMonthIncomePKR - lastMonthExpensePKR;
+
+  const momGrowthPct = lastMonthNetUSD !== 0
+    ? Math.round(((thisMonthNetUSD - lastMonthNetUSD) / Math.abs(lastMonthNetUSD)) * 100)
+    : thisMonthNetUSD > 0 ? 100 : 0;
 
   // Apply date filters in-memory
   const filteredTransactions = transactions.filter((tx) => {
@@ -365,6 +409,65 @@ export default function DashboardPage() {
             </button>
           );
         })}
+      </div>
+
+      {/* Monthly Comparison Card (This Month vs Last Month) */}
+      <div className="bg-white p-5 border border-slate-200 rounded-lg shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-slate-700" />
+            <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+              Month-Over-Month (MoM) Financial Growth & Profit Comparison
+            </h3>
+          </div>
+          <Badge
+            className={`font-bold border text-xs ${
+              momGrowthPct >= 0
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-rose-50 text-rose-700 border-rose-200'
+            }`}
+          >
+            {momGrowthPct >= 0 ? '+' : ''}{momGrowthPct}% Net Change vs {lastMonthLabel}
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          {/* This Month */}
+          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                This Month ({thisMonthLabel})
+              </span>
+              <div className="text-xl font-extrabold text-slate-900 mt-1">
+                {formatCurrency(thisMonthNetUSD, true)}
+              </div>
+              <div className="text-xs font-semibold text-slate-600 mt-0.5">
+                {formatCurrency(thisMonthNetPKR, false)}
+              </div>
+            </div>
+            <Badge className={thisMonthNetUSD >= 0 ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}>
+              {thisMonthNetUSD >= 0 ? 'Profit' : 'Deficit'}
+            </Badge>
+          </div>
+
+          {/* Last Month */}
+          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                Last Month ({lastMonthLabel})
+              </span>
+              <div className="text-xl font-extrabold text-slate-900 mt-1">
+                {formatCurrency(lastMonthNetUSD, true)}
+              </div>
+              <div className="text-xs font-semibold text-slate-600 mt-0.5">
+                {formatCurrency(lastMonthNetPKR, false)}
+              </div>
+            </div>
+            <Badge className={lastMonthNetUSD >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}>
+              {lastMonthNetUSD >= 0 ? 'Profit' : 'Deficit'}
+            </Badge>
+          </div>
+        </div>
       </div>
 
       {/* Main stat cards */}

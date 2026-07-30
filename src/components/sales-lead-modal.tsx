@@ -45,6 +45,8 @@ export function SalesLeadModal({
   const [clientName, setClientName] = useState(lead?.client_name || '');
   const [leadTitle, setLeadTitle] = useState(lead?.lead_title || '');
   const [leadDetails, setLeadDetails] = useState(lead?.lead_details || '');
+  const [leadCount, setLeadCount] = useState(lead?.lead_count ? String(lead.lead_count) : '1');
+  const [cycleName, setCycleName] = useState(lead?.cycle_name || '7-Day Batch');
   const [currency, setCurrency] = useState<'USD' | 'PKR'>(lead?.currency || 'PKR');
   const [dealAmountUsd, setDealAmountUsd] = useState(lead ? String(lead.deal_amount_usd) : '0');
   const [dealAmountPkr, setDealAmountPkr] = useState(lead ? String(lead.deal_amount_pkr) : '0');
@@ -100,6 +102,8 @@ export function SalesLeadModal({
       client_name: clientName.trim(),
       lead_title: leadTitle.trim(),
       lead_details: leadDetails.trim() || null,
+      lead_count: parseInt(leadCount, 10) || 1,
+      cycle_name: cycleName.trim() || '7-Day Batch',
       currency,
       deal_amount_usd: parseFloat(dealAmountUsd) || 0,
       deal_amount_pkr: parseFloat(dealAmountPkr) || 0,
