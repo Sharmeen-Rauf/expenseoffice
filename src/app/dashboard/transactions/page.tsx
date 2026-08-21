@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
+import { useLedger } from '@/context/ledger';
 import { createAuditLog } from '@/lib/audit';
 import { TransactionsTable } from '@/components/transactions-table';
 import { TransactionModal } from '@/components/transaction-modal';
@@ -23,10 +24,12 @@ interface Transaction {
   amount_pkr: number;
   paid_by: string;
   category: string;
+  ledger_type?: 'primary' | 'partner';
 }
 
 export default function TransactionsPage() {
   const { role } = useAuth();
+  const { ledgerType } = useLedger();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -40,6 +43,7 @@ export default function TransactionsPage() {
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
+        .eq('ledger_type', ledgerType)
         .order('date', { ascending: false });
 
       if (error) throw error;
@@ -58,7 +62,7 @@ export default function TransactionsPage() {
         loadTransactions();
       });
     }
-  }, [role]);
+  }, [role, ledgerType]);
 
   const handleEdit = (tx: Transaction) => {
     setActiveTransaction(tx);
@@ -80,7 +84,8 @@ export default function TransactionsPage() {
           transactionId: id,
           action: 'DELETE',
           itemName: targetTx.item,
-          details: `Deleted ${targetTx.type} transaction originally paid by ${targetTx.paid_by} (Rs ${targetTx.amount_pkr} / $${targetTx.amount_usd})`,
+          details: `Deleted ${targetTx.type} entry paid by ${targetTx.paid_by} (Rs ${targetTx.amount_pkr} / $${targetTx.amount_usd})`,
+          ledgerType: ledgerType,
         });
       }
 

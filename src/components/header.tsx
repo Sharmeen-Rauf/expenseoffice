@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePathname } from 'next/navigation';
 import { CalendarDays, Shield, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { LedgerSwitcher } from '@/components/ledger-switcher';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -48,6 +49,11 @@ export function Header({ onMenuToggle }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
+        {/* LEDGER SWITCHER */}
+        <LedgerSwitcher />
+
+        {/* Separator */}
+        <div className="hidden h-4 w-px bg-slate-200 sm:block"></div>
         {/* Date Display */}
         <div className="hidden items-center gap-1.5 text-xs sm:text-sm text-slate-500 md:flex">
           <CalendarDays className="h-4 w-4" />

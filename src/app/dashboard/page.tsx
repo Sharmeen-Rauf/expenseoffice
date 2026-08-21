@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
+import { useLedger } from '@/context/ledger';
 import { PaidByAnalytics } from '@/components/paid-by-analytics';
 import { AuditLogModal } from '@/components/audit-log-modal';
 import { CategoryManagerModal } from '@/components/category-manager-modal';
@@ -42,10 +43,12 @@ interface Transaction {
   amount_pkr: number;
   paid_by: string;
   category: string;
+  ledger_type?: 'primary' | 'partner';
 }
 
 export default function DashboardPage() {
   const { role } = useAuth();
+  const { ledgerType } = useLedger();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
@@ -83,7 +86,11 @@ export default function DashboardPage() {
     async function loadTransactions() {
       setLoading(true);
       try {
-        const query = supabase.from('transactions').select('*').order('date', { ascending: false });
+        const query = supabase
+          .from('transactions')
+          .select('*')
+          .eq('ledger_type', ledgerType)
+          .order('date', { ascending: false });
 
         const { data, error } = await query;
         if (error) throw error;
@@ -99,7 +106,7 @@ export default function DashboardPage() {
     if (role === 'boss' || role === 'manager') {
       loadTransactions();
     }
-  }, [role]);
+  }, [role, ledgerType]);
 
   // Today's date calculations
   const todayObj = new Date();

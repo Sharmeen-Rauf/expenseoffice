@@ -5,6 +5,7 @@ export interface AuditLogParams {
   action: 'CREATE' | 'UPDATE' | 'DELETE';
   itemName: string;
   details: string;
+  ledgerType?: 'primary' | 'partner';
 }
 
 export interface AuditLogEntry {
@@ -16,6 +17,7 @@ export interface AuditLogEntry {
   performed_by_name?: string;
   item_name: string;
   details: string;
+  ledger_type?: 'primary' | 'partner';
   created_at: string;
 }
 
@@ -24,12 +26,12 @@ export async function createAuditLog({
   action,
   itemName,
   details,
+  ledgerType = 'primary',
 }: AuditLogParams): Promise<void> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Optionally fetch profile for full name
     let userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
     const { data: profile } = await supabase
       .from('profiles')
@@ -49,6 +51,7 @@ export async function createAuditLog({
       performed_by_name: userName,
       item_name: itemName,
       details,
+      ledger_type: ledgerType,
     }]);
 
     if (error) {
@@ -56,5 +59,21 @@ export async function createAuditLog({
     }
   } catch (err) {
     console.warn('Failed to log audit activity:', err);
+  }
+}
+
+export async function fetchAuditLogs(ledgerType: 'primary' | 'partner' = 'primary'): Promise<AuditLogEntry[]> {
+  try {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .eq('ledger_type', ledgerType)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data as AuditLogEntry[]) || [];
+  } catch (err) {
+    console.error('Error fetching audit logs:', err);
+    return [];
   }
 }

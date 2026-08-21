@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth';
-import { LayoutDashboard, ReceiptText, Users, LogOut, ShieldAlert, X, Handshake } from 'lucide-react';
+import { useLedger } from '@/context/ledger';
+import { LayoutDashboard, ReceiptText, Users, LogOut, ShieldAlert, X, Handshake, Building2, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -15,6 +17,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { role, signOut, profile } = useAuth();
+  const { isPartner, ledgerBadge } = useLedger();
 
   const navigation = [
     {
@@ -71,7 +74,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="flex h-8 w-8 items-center justify-center rounded bg-slate-900 text-white shadow-xs">
               <span className="text-sm font-bold tracking-wider">AE</span>
             </div>
-            <span className="text-lg tracking-tight font-extrabold">Alara Expense</span>
+            <div className="flex flex-col">
+              <span className="text-base tracking-tight font-extrabold leading-tight">Alara Expense</span>
+              <Badge
+                className={`text-[9px] py-0 px-1 font-bold w-fit ${
+                  isPartner
+                    ? 'bg-amber-500 text-slate-950 hover:bg-amber-500'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                {ledgerBadge}
+              </Badge>
+            </div>
           </Link>
 
           {/* Close button for mobile */}

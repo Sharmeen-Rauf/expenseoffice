@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { createAuditLog } from '@/lib/audit';
 import { fetchCategories, CategoryItem } from '@/lib/categories';
+import { useLedger } from '@/context/ledger';
 import { CategoryManagerModal } from '@/components/category-manager-modal';
 import { useAuth } from '@/context/auth';
 import { toast } from 'sonner';
@@ -27,7 +28,7 @@ import {
 } from '@/components/ui/select';
 
 interface Transaction {
-  id?: string;
+  id: string;
   date: string;
   item: string;
   detail: string | null;
@@ -53,6 +54,7 @@ export function TransactionModal({
   transaction,
 }: TransactionModalProps) {
   const { role } = useAuth();
+  const { ledgerType } = useLedger();
   const isEditing = !!transaction?.id;
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
@@ -63,7 +65,7 @@ export function TransactionModal({
   const [item, setItem] = useState(transaction?.item || '');
   const [detail, setDetail] = useState(transaction?.detail || '');
   const [type, setType] = useState<'income' | 'expense'>(transaction?.type || 'expense');
-  const [currency, setCurrency] = useState<'USD' | 'PKR'>(transaction?.currency || 'USD');
+  const [currency, setCurrency] = useState<'USD' | 'PKR'>(transaction?.currency || 'PKR');
   const [amountUsd, setAmountUsd] = useState(transaction ? String(transaction.amount_usd) : '0');
   const [amountPkr, setAmountPkr] = useState(transaction ? String(transaction.amount_pkr) : '0');
   const [paidBy, setPaidBy] = useState(transaction?.paid_by || '');
@@ -105,6 +107,7 @@ export function TransactionModal({
       amount_pkr: parseFloat(amountPkr) || 0,
       paid_by: paidBy.trim(),
       category: category || 'Office',
+      ledger_type: ledgerType,
     };
 
     try {
@@ -124,6 +127,7 @@ export function TransactionModal({
           action: 'UPDATE',
           itemName: payload.item,
           details: changeDetails,
+          ledgerType: ledgerType,
         });
 
         toast.success('Transaction updated successfully.');
@@ -139,12 +143,13 @@ export function TransactionModal({
         if (error) throw error;
 
         // Log audit
-        const createDetails = `Added new ${payload.type} entry paid by ${payload.paid_by}. Amount: Rs ${payload.amount_pkr} / $${payload.amount_usd} (${payload.category})`;
+        const newDetails = `Type: ${payload.type.toUpperCase()}, Currency: ${payload.currency}, Amounts: Rs ${payload.amount_pkr} / $${payload.amount_usd}, Paid by: ${payload.paid_by}`;
         await createAuditLog({
           transactionId: createdData?.id,
           action: 'CREATE',
           itemName: payload.item,
-          details: createDetails,
+          details: newDetails,
+          ledgerType: ledgerType,
         });
 
         toast.success('Transaction added successfully.');

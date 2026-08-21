@@ -297,6 +297,12 @@ create policy "Allow insert access to sales_lead_payments for boss and manager"
     )
   );
 
+-- Multi-Ledger Switcher Isolation Columns (Primary vs Partner Ledger)
+alter table public.transactions add column if not exists ledger_type text not null default 'primary';
+alter table public.sales_leads add column if not exists ledger_type text not null default 'primary';
+alter table public.audit_logs add column if not exists ledger_type text not null default 'primary';
+
+
 
 
 

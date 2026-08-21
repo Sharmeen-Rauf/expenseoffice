@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { AuditLogEntry } from '@/lib/audit';
+import { useLedger } from '@/context/ledger';
 import { 
   History, 
   PlusCircle, 
@@ -30,6 +31,7 @@ interface AuditLogModalProps {
 }
 
 export function AuditLogModal({ isOpen, onClose }: AuditLogModalProps) {
+  const { ledgerType } = useLedger();
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,6 +41,7 @@ export function AuditLogModal({ isOpen, onClose }: AuditLogModalProps) {
       const { data, error } = await supabase
         .from('audit_logs')
         .select('*')
+        .eq('ledger_type', ledgerType)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -60,7 +63,7 @@ export function AuditLogModal({ isOpen, onClose }: AuditLogModalProps) {
     if (isOpen) {
       fetchAuditLogs();
     }
-  }, [isOpen]);
+  }, [isOpen, ledgerType]);
 
   const getActionBadge = (action: 'CREATE' | 'UPDATE' | 'DELETE') => {
     switch (action) {

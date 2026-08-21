@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
+import { useLedger } from '@/context/ledger';
+
 interface SalesLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,6 +39,7 @@ export function SalesLeadModal({
   onSuccess,
   lead,
 }: SalesLeadModalProps) {
+  const { ledgerType } = useLedger();
   const isEditing = !!lead?.id;
   const [loading, setLoading] = useState(false);
 
@@ -120,15 +123,17 @@ export function SalesLeadModal({
           action: 'UPDATE',
           itemName: `Sales Lead: ${payload.lead_title}`,
           details: `Updated sales lead for client ${payload.client_name}. Total: Rs ${payload.deal_amount_pkr} / $${payload.deal_amount_usd}, Received: Rs ${payload.received_amount_pkr} / $${payload.received_amount_usd} (${payload.status})`,
+          ledgerType: ledgerType,
         });
         toast.success('Sales lead updated successfully.');
       } else {
-        const created = await createSalesLead(payload);
+        const created = await createSalesLead(payload, ledgerType);
         await createAuditLog({
           transactionId: created?.id,
           action: 'CREATE',
           itemName: `Sales Lead: ${payload.lead_title}`,
           details: `Created new sales lead for client ${payload.client_name}. Total: Rs ${payload.deal_amount_pkr} / $${payload.deal_amount_usd}, Received: Rs ${payload.received_amount_pkr} / $${payload.received_amount_usd}`,
+          ledgerType: ledgerType,
         });
         toast.success('Sales lead recorded successfully.');
       }

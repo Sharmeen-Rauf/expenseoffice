@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/auth';
+import { useLedger } from '@/context/ledger';
 import { 
   SalesLead, 
   fetchSalesLeads, 
@@ -52,6 +53,7 @@ import {
 
 export default function SalesLeadsPage() {
   const { role } = useAuth();
+  const { ledgerType } = useLedger();
   const [leads, setLeads] = useState<SalesLead[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -73,7 +75,7 @@ export default function SalesLeadsPage() {
   const loadLeads = async () => {
     setLoading(true);
     try {
-      const data = await fetchSalesLeads();
+      const data = await fetchSalesLeads(ledgerType);
       setLeads(data);
     } catch (err) {
       console.error(err);
@@ -87,7 +89,7 @@ export default function SalesLeadsPage() {
     if (role === 'boss' || role === 'manager') {
       loadLeads();
     }
-  }, [role]);
+  }, [role, ledgerType]);
 
   // Unique clients list (defaults to Salma if available)
   const uniqueClients = useMemo(() => {

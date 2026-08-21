@@ -14,6 +14,7 @@ export interface SalesLead {
   received_amount_usd: number;
   received_amount_pkr: number;
   status: 'pending' | 'partially_paid' | 'paid' | 'cancelled';
+  ledger_type?: 'primary' | 'partner';
   created_by?: string;
   created_at?: string;
 }
@@ -29,11 +30,12 @@ export interface SalesPayment {
   created_at?: string;
 }
 
-export async function fetchSalesLeads(): Promise<SalesLead[]> {
+export async function fetchSalesLeads(ledgerType: 'primary' | 'partner' = 'primary'): Promise<SalesLead[]> {
   try {
     const { data, error } = await supabase
       .from('sales_leads')
       .select('*')
+      .eq('ledger_type', ledgerType)
       .order('date', { ascending: false });
 
     if (error) {
@@ -48,12 +50,15 @@ export async function fetchSalesLeads(): Promise<SalesLead[]> {
   }
 }
 
-export async function createSalesLead(lead: Omit<SalesLead, 'id' | 'created_at'>): Promise<SalesLead> {
+export async function createSalesLead(
+  lead: Omit<SalesLead, 'id' | 'created_at'>,
+  ledgerType: 'primary' | 'partner' = 'primary'
+): Promise<SalesLead> {
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data, error } = await supabase
     .from('sales_leads')
-    .insert([{ ...lead, created_by: user?.id }])
+    .insert([{ ...lead, ledger_type: ledgerType, created_by: user?.id }])
     .select()
     .single();
 
