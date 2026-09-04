@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const effectiveRole = React.useMemo(() => {
     if (!profile) return null;
-    if (profile.email?.toLowerCase().includes('moizpartner') && profile.role === 'pending') {
+    if (profile.email?.toLowerCase().includes('moizpartner')) {
       return 'partner';
     }
     return profile.role;
