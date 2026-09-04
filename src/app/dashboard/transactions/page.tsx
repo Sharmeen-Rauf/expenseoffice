@@ -57,7 +57,7 @@ export default function TransactionsPage() {
   };
 
   useEffect(() => {
-    if (role === 'boss' || role === 'manager') {
+    if (role === 'boss' || role === 'manager' || role === 'partner') {
       Promise.resolve().then(() => {
         loadTransactions();
       });

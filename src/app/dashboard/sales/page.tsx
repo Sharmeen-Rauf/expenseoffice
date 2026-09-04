@@ -86,7 +86,7 @@ export default function SalesLeadsPage() {
   };
 
   useEffect(() => {
-    if (role === 'boss' || role === 'manager') {
+    if (role === 'boss' || role === 'manager' || role === 'partner') {
       loadLeads();
     }
   }, [role, ledgerType]);

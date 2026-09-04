@@ -103,7 +103,7 @@ export default function DashboardPage() {
       }
     }
 
-    if (role === 'boss' || role === 'manager') {
+    if (role === 'boss' || role === 'manager' || role === 'partner') {
       loadTransactions();
     }
   }, [role, ledgerType]);

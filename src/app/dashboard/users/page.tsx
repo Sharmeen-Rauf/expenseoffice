@@ -19,7 +19,7 @@ import {
 interface UserProfile {
   id: string;
   email: string;
-  role: 'boss' | 'manager' | 'pending';
+  role: 'boss' | 'manager' | 'partner' | 'pending';
   full_name: string | null;
   updated_at: string;
 }
@@ -56,7 +56,7 @@ export default function UsersPage() {
     }
   }, [role]);
 
-  const handleUpdateRole = async (userId: string, newRole: 'boss' | 'manager' | 'pending') => {
+  const handleUpdateRole = async (userId: string, newRole: 'boss' | 'manager' | 'partner' | 'pending') => {
     if (userId === currentUser?.id) {
       toast.error('You cannot change your own role to prevent lockout.');
       return;
@@ -140,9 +140,11 @@ export default function UsersPage() {
                       className={`font-semibold capitalize border ${
                         profile.role === 'boss'
                           ? 'bg-slate-900 text-white border-slate-950 hover:bg-slate-900'
+                          : profile.role === 'partner'
+                          ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-100'
                           : profile.role === 'manager'
                           ? 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-50'
-                          : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50'
+                          : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-50'
                       }`}
                     >
                       {profile.role}
@@ -155,6 +157,16 @@ export default function UsersPage() {
                       <div className="flex justify-end gap-1.5">
                         {isPending ? (
                           <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleUpdateRole(profile.id, 'partner')}
+                              disabled={updatingId !== null}
+                              className="text-xs h-8 border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900"
+                            >
+                              <UserCheck className="mr-1 h-3.5 w-3.5" />
+                              Approve Partner
+                            </Button>
                             <Button
                               size="sm"
                               variant="outline"
@@ -177,6 +189,18 @@ export default function UsersPage() {
                           </>
                         ) : (
                           <>
+                            {profile.role !== 'partner' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateRole(profile.id, 'partner')}
+                                disabled={updatingId !== null}
+                                className="text-xs h-8 border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900"
+                              >
+                                <ArrowLeftRight className="mr-1 h-3.5 w-3.5" />
+                                Set Partner
+                              </Button>
+                            )}
                             {profile.role === 'boss' ? (
                               <Button
                                 size="sm"

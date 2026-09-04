@@ -7,7 +7,7 @@ import { User } from '@supabase/supabase-js';
 export interface Profile {
   id: string;
   email: string;
-  role: 'boss' | 'manager' | 'pending';
+  role: 'boss' | 'manager' | 'partner' | 'pending';
   full_name: string | null;
   updated_at: string;
 }
@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  role: 'boss' | 'manager' | 'pending' | null;
+  role: 'boss' | 'manager' | 'partner' | 'pending' | null;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -47,7 +47,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Error fetching profile:', error);
         return null;
       }
-      return data as Profile;
+      const prof = data as Profile;
+      // Auto-assign partner role for partner email if currently pending
+      if (prof && prof.email?.toLowerCase().includes('moizpartner') && prof.role === 'pending') {
+        prof.role = 'partner';
+      }
+      return prof;
     } catch (err) {
       console.error('Catch error fetching profile:', err);
       return null;
@@ -109,11 +114,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(false);
   };
 
+  const effectiveRole = React.useMemo(() => {
+    if (!profile) return null;
+    if (profile.email?.toLowerCase().includes('moizpartner') && profile.role === 'pending') {
+      return 'partner';
+    }
+    return profile.role;
+  }, [profile]);
+
   const value = {
     user,
-    profile,
+    profile: profile ? { ...profile, role: effectiveRole || profile.role } : null,
     loading,
-    role: profile?.role || null,
+    role: effectiveRole,
     signOut,
     refreshProfile,
   };

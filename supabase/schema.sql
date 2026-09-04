@@ -5,7 +5,7 @@ create extension if not exists "uuid-ossp";
 create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   email text unique not null,
-  role text not null check (role in ('boss', 'manager', 'pending')) default 'pending',
+  role text not null check (role in ('boss', 'manager', 'partner', 'pending')) default 'pending',
   full_name text,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -47,33 +47,33 @@ create policy "Allow update for boss only"
   );
 
 -- Transactions Policies
-create policy "Allow read access to transactions for boss and manager"
+create policy "Allow read access to transactions for boss, manager and partner"
   on public.transactions for select
   to authenticated
   using (
     exists (
       select 1 from public.profiles
-      where id = auth.uid() and role in ('boss', 'manager')
+      where id = auth.uid() and role in ('boss', 'manager', 'partner')
     )
   );
 
-create policy "Allow insert access to transactions for boss and manager"
+create policy "Allow insert access to transactions for boss, manager and partner"
   on public.transactions for insert
   to authenticated
   with check (
     exists (
       select 1 from public.profiles
-      where id = auth.uid() and role in ('boss', 'manager')
+      where id = auth.uid() and role in ('boss', 'manager', 'partner')
     )
   );
 
-create policy "Allow update access to transactions for boss and manager"
+create policy "Allow update access to transactions for boss, manager and partner"
   on public.transactions for update
   to authenticated
   using (
     exists (
       select 1 from public.profiles
-      where id = auth.uid() and role in ('boss', 'manager')
+      where id = auth.uid() and role in ('boss', 'manager', 'partner')
     )
   );
 
@@ -87,7 +87,7 @@ create policy "Allow delete access to transactions for boss only"
     )
   );
 
--- Trigger for Auto-Creating Profiles & Auto-Setting Specified/First Users as Boss
+-- Trigger for Auto-Creating Profiles & Auto-Setting Specified/First Users as Boss / Partner
 create or replace function public.handle_new_user()
 returns trigger as $$
 declare
@@ -98,6 +98,8 @@ begin
 
   if new.email in ('zumarlatifi@gmail.com', 'sharmeenpakistan8@gmail.com') or is_first_user then
     assigned_role := 'boss';
+  elsif new.email in ('moizpartner@gmail.com') or new.email like '%partner%' then
+    assigned_role := 'partner';
   else
     assigned_role := 'pending';
   end if;
@@ -107,7 +109,7 @@ begin
     new.id,
     new.email,
     assigned_role,
-    coalesce(new.raw_user_meta_data->>'full_name', 'Boss User')
+    coalesce(new.raw_user_meta_data->>'full_name', 'Partner User')
   )
   on conflict (id) do update
   set role = excluded.role,
@@ -126,6 +128,10 @@ create trigger on_auth_user_created
 update public.profiles
 set role = 'boss'
 where email in ('zumarlatifi@gmail.com', 'sharmeenpakistan8@gmail.com');
+
+update public.profiles
+set role = 'partner'
+where email in ('moizpartner@gmail.com');
 
 
 -- Audit Logs Table for Transparency & Activity Tracking

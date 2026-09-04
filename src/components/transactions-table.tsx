@@ -57,7 +57,7 @@ interface Transaction {
 
 interface TransactionsTableProps {
   data: Transaction[];
-  role: 'boss' | 'manager' | 'pending' | null;
+  role: 'boss' | 'manager' | 'partner' | 'pending' | null;
   onEdit: (tx: Transaction) => void;
   onDelete: (id: string) => void;
   onOpenAddModal: () => void;

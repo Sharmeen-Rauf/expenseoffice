@@ -24,19 +24,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       name: 'Dashboard',
       href: '/dashboard',
       icon: LayoutDashboard,
-      roles: ['boss', 'manager'],
+      roles: ['boss', 'manager', 'partner'],
     },
     {
       name: 'Transactions',
       href: '/dashboard/transactions',
       icon: ReceiptText,
-      roles: ['boss', 'manager'],
+      roles: ['boss', 'manager', 'partner'],
     },
     {
       name: 'Sales & Leads',
       href: '/dashboard/sales',
       icon: Handshake,
-      roles: ['boss', 'manager'],
+      roles: ['boss', 'manager', 'partner'],
     },
     {
       name: 'User Management',
